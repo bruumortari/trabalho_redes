@@ -1,3 +1,5 @@
+package trabalho;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -21,6 +23,9 @@ public class Main{
                 String[] parts = line.split(" ");
                 if (parts.length == 3) {
                     short id = Short.parseShort(parts[0]);
+                    if(parts[1].equals("localhost")){
+                        parts[1] = "127.0.0.1";
+                    }
                     String addressAndPort = parts[1] + ":" + parts[2];
                     idEnd.put(id, addressAndPort);
                     ipID.put("/"+parts[1]+":"+parts[2], id);
@@ -48,6 +53,9 @@ public class Main{
         for(short id : idEnd.keySet()){ //percorre todos os nos
             String[] end = idEnd.get(id).split(":"); //splita o endereco guardado
 
+            if(!end[0].equals("127.0.0.1") ){
+                continue; //so criar instancias que forem locais
+            }
             //instancia o up, informando os maps, id e porta
             UnicastProtocol up = new UnicastProtocol(id, Integer.parseInt(end[1]), idEnd, ipID);
 

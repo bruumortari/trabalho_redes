@@ -1,3 +1,5 @@
+package trabalho;
+
 import java.io.*;
 import java.net.*;
 import java.util.HashMap;
@@ -83,7 +85,18 @@ public class UnicastProtocol implements UnicastServiceInterface, Runnable{
                 }else{
                     //se achou, notifica a camada de cima
                     System.out.println("Mensagem do node "+id+": "+message+ " destinatario: "+ucsap_id);
-                    usui.UPDataInd(id, message);
+
+                    //reconstrucao da mensagem
+                    String[] parts = message.split(" "); //split da mensagem, pode splitar a mensagem tbm (se ela tiver espaco)
+                    int i = Integer.parseInt(parts[1]); //tamanho da mensagem
+                    int j = 2; //a partir daqui eh a mensagem
+                    String msg = ""; 
+                    while(i>0){ //enquanto ainda tem mensagem para processar
+                        msg = msg + " "+ parts[j]; // concatena as partes (com espaco)
+                        i = i - parts[j].length() - 1; // tira o que ja foi e o espaco (que tambem contou no tamanho da mensagem)
+                        j++;
+                    }
+                    usui.UPDataInd(id, msg); //manda a mensagem limpa
                 }
                 
             }
