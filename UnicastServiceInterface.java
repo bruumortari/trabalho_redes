@@ -1,5 +1,5 @@
 public interface UnicastServiceInterface {
-    // Notificar a chegada de uma mensagem
-    // Entidade origem, mensagem
-    void UPDataInd(short sh, String str);
+    // Envio de uma mensagem para um usuário do serviço de unicast
+    // Entidade destino, mensagem
+    boolean UPDataReq(short sh, String str);
 }
