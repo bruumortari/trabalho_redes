@@ -1,5 +1,3 @@
-package trabalho;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -13,22 +11,29 @@ public class Main{
     private static List<Short> nodesList = new ArrayList<>();
 
     private static void SetConfig(String fileName){
-        //funcao para ler o arquivo de configuracao
+        // Função para ler o arquivo de configuração
+        // Preenche os hashmaps com as informações do arquivo (id endereçoIP porta)
         try{
+            // Hashmap "id" : "endereço:porta"
             idEnd = new HashMap<>();
+            // Hashmap "/endereço:porta" : "id"
             ipID = new HashMap<>();
             BufferedReader reader = new BufferedReader(new FileReader(fileName));
             String line;
+            // Lê cada linha do arquivo
             while ((line = reader.readLine()) !=null) {
                 String[] parts = line.split(" ");
                 if (parts.length == 3) {
                     short id = Short.parseShort(parts[0]);
+                    // Apenas localmente
                     if(parts[1].equals("localhost")){
                         parts[1] = "127.0.0.1";
                     }
+                    // Junta o endereço ip e a porta
                     String addressAndPort = parts[1] + ":" + parts[2];
                     idEnd.put(id, addressAndPort);
                     ipID.put("/"+parts[1]+":"+parts[2], id);
+                    // Adiciona o id na lista de nós
                     nodesList.add(id);
                 } else {
                     System.out.println("Formato inválido na linha: " + line);
@@ -41,36 +46,39 @@ public class Main{
         }
     }
     public static void main(String[] args){
+        // Chama função para ler o arquivo
         SetConfig("config.txt");
-        if(idEnd == null){ // se map ta vazio, algo deu errado
+        // Se o hashmap estiver vazio, algo deu errado na leitura do arquivo
+        if(idEnd == null){ 
             System.err.println("Erro: arquivo de configuracao inválido!");
             System.exit(-1);
         }
-        //grupo de threads
+        // Grupo de threads
         ThreadGroup uniGroup = new ThreadGroup("Unicasts");
         ThreadGroup rpiGroup = new ThreadGroup("Routings");
 
-        for(short id : idEnd.keySet()){ //percorre todos os nos
-            String[] end = idEnd.get(id).split(":"); //splita o endereco guardado
+        // Percorre todos os nós
+        for(short id : idEnd.keySet()){ 
+            String[] end = idEnd.get(id).split(":"); // Splita o endereço guardado (endereçoIP:porta)
 
             if(!end[0].equals("127.0.0.1") ){
-                continue; //so criar instancias que forem locais
+                continue; // Só cria instâncias que forem locais
             }
-            //instancia o up, informando os maps, id e porta
+            // Instancia o unicast protocol, informando os hashmaps, id e porta
             UnicastProtocol up = new UnicastProtocol(id, Integer.parseInt(end[1]), idEnd, ipID);
 
-            //instancia a janela (cliente) para cada no
+            // Instancia a janela (cliente) para cada nó (interface gráfica)
             NodeWindow nw = new NodeWindow(id, nodesList.toArray(new Short[0]));
 
-            //ligacao das classes
+            // Ligação das classes
             up.SetUser(nw);
             nw.SetUSI(up);
 
-            //colocando nos grupos
+            // Cria as threads e coloca nos grupos
             Thread upThread = new Thread(uniGroup, up);
             Thread rpiThread = new Thread(rpiGroup, nw);
 
-            //inicializando
+            // Inicializa as threads
             upThread.start();
             rpiThread.start();
         }
