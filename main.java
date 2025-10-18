@@ -1,92 +1,88 @@
-import java.util.*;
-import java.net.*;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 
-public class main {
+public class Main{
+    private static HashMap<Short,String> idEnd;
+    private static HashMap<String,Short> ipID;
+    private static List<Short> nodesList = new ArrayList<>();
 
-    public static void main(String[] args) {
-        String message;
-        InetAddress address;
-        short port;
-        short id;
-        // Verifica quantidade de argumentos
-        if (args.length != 1){
-            System.err.println("Erro: informe o endereço IP do servidor");
-            System.exit(0);
+    private static void SetConfig(String fileName){
+        // Função para ler o arquivo de configuração
+        // Preenche os hashmaps com as informações do arquivo (id endereçoIP porta)
+        try{
+            // Hashmap "id" : "endereço:porta"
+            idEnd = new HashMap<>();
+            // Hashmap "/endereço:porta" : "id"
+            ipID = new HashMap<>();
+            BufferedReader reader = new BufferedReader(new FileReader(fileName));
+            String line;
+            // Lê cada linha do arquivo
+            while ((line = reader.readLine()) !=null) {
+                String[] parts = line.split(" ");
+                if (parts.length == 3) {
+                    short id = Short.parseShort(parts[0]);
+                    // Apenas localmente
+                    if(parts[1].equals("localhost")){
+                        parts[1] = "127.0.0.1";
+                    }
+                    // Junta o endereço ip e a porta
+                    String addressAndPort = parts[1] + ":" + parts[2];
+                    idEnd.put(id, addressAndPort);
+                    ipID.put("/"+parts[1]+":"+parts[2], id);
+                    // Adiciona o id na lista de nós
+                    nodesList.add(id);
+                } else {
+                    System.out.println("Formato inválido na linha: " + line);
+                }
+            }
+            reader.close();
+        }catch(IOException e){
+            System.out.println("Erro ao ler o arquivo: " + e.getMessage());
+            System.exit(-1);
+        }
+    }
+    public static void main(String[] args){
+        // Chama função para ler o arquivo
+        SetConfig("config.txt");
+        // Se o hashmap estiver vazio, algo deu errado na leitura do arquivo
+        if(idEnd == null){ 
+            System.err.println("Erro: arquivo de configuracao inválido!");
+            System.exit(-1);
+        }
+        // Grupo de threads
+        ThreadGroup uniGroup = new ThreadGroup("Unicasts");
+        ThreadGroup rpiGroup = new ThreadGroup("Routings");
+
+        // Percorre todos os nós
+        for(short id : idEnd.keySet()){ 
+            String[] end = idEnd.get(id).split(":"); // Splita o endereço guardado (endereçoIP:porta)
+
+            if(!end[0].equals("127.0.0.1") ){
+                continue; // Só cria instâncias que forem locais
+            }
+            // Instancia o unicast protocol, informando os hashmaps, id e porta
+            UnicastProtocol up = new UnicastProtocol(id, Integer.parseInt(end[1]), idEnd, ipID);
+
+            // Instancia a janela (cliente) para cada nó (interface gráfica)
+            NodeWindow nw = new NodeWindow(id, nodesList.toArray(new Short[0]));
+
+            // Ligação das classes
+            up.SetUser(nw);
+            nw.SetUSI(up);
+
+            // Cria as threads e coloca nos grupos
+            Thread upThread = new Thread(uniGroup, up);
+            Thread rpiThread = new Thread(rpiGroup, nw);
+
+            // Inicializa as threads
+            upThread.start();
+            rpiThread.start();
         }
 
-        try {
-            Scanner stdIn = new Scanner(System.in);
-            System.out.print("Mensagem -> ");
-			message = stdIn.nextLine();
-
-            ClientUP client = new ClientUP();
-            // Instância do protocolo de unicast
-            UnicastProtocol unicastProtocol = new UnicastProtocol();
-
-            // Leitura do arquivo de configuração (id, end IP e porta)
-            HashMap<Short, String> configMap = new HashMap<>();
-            configMap = unicastProtocol.readConfigFile("config.txt");
-            unicastProtocol.setHashMap(configMap);
-            //for (Short id : configMap.keySet()) {
-                //System.out.println("ID: " + id + ", Address and Port: " + configMap.get(id));
-            //}
-
-            // Checagem do formato da PDU
-            //String testMessage = "UPDREQPDU 10 HelloWorld";
-            address = InetAddress.getByName(args[0]);
-            short[] id_port = unicastProtocol.getPortId(args[0]);
-            id = id_port[0];
-            port = id_port[1];
-            System.out.println("ID do destino: " + id + ", Porta do destino: " + port);
-            boolean result = unicastProtocol.checkPDUFormat(message);
-            if(result) {
-                System.out.println("Formato PDU válido.");
-                // Inicialização da thread do servidorr
-                Thread serverThread = new Thread(() -> {
-                System.out.println("Thread do servidor iniciando...");
-                    try {
-                        unicastProtocol.runServer(port);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    System.out.println("Thread do servidor finalizou.");
-                });
-
-                // Inicia a thread do cliente
-                Thread clientThread = new Thread(() -> {
-                    System.out.println("Thread do cliente iniciando...");
-                    try {
-                        client.runClient(address, port, message);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    System.out.println("Thread do cliente finalizou.");
-                });
-
-                // Inicia as threads
-                clientThread.start();
-                serverThread.start();
-
-                // Aguarda a thread do cliente terminar antes de continuar
-                try {
-                    clientThread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                // Aguarda a thread do servidor terminar
-                try {
-                    serverThread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                System.out.println("Formato PDU inválido.");
-            }   
-            } catch (Exception e) {
-                System.out.println("Exception: " + e);
-            }
-
     }
+    
 }
