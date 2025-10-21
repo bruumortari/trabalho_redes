@@ -29,6 +29,12 @@ public class Main{
                     if(parts[1].equals("localhost")){
                         parts[1] = "127.0.0.1";
                     }
+                    int port = Integer.parseInt(parts[2]);
+                    // Checa se o número de porta é válido
+                    if(port < 0 || port > 65535) {
+                        System.out.println("Número de porta inválido: " + port);
+                        continue;
+                    }
                     // Junta o endereço ip e a porta
                     String addressAndPort = parts[1] + ":" + parts[2];
                     idEnd.put(id, addressAndPort);

@@ -79,10 +79,15 @@ public class NodeWindow implements UnicastServiceUserInterface, Runnable{
 
     @Override
     public void UPDataInd(short targetId, String message) {
-        // Adiciona na lista de mensagens recebidas
-        receivedMessagesList.addElement("De: "+targetId+ " Mensagem: "+message);
-        // Atualiza a tela
-        window.repaint();
+        if(targetId == -1) {
+            JOptionPane.showMessageDialog(null, message);
+        }
+        else {
+            // Adiciona na lista de mensagens recebidas
+            receivedMessagesList.addElement("De: "+targetId+ " Mensagem: "+message);
+            // Atualiza a tela
+            window.repaint();
+        }
     }
 
     @Override

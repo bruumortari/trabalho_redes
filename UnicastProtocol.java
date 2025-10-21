@@ -31,7 +31,7 @@ public class UnicastProtocol implements UnicastServiceInterface, Runnable{
 
     @Override
     public boolean UPDataReq(short idTarget, String str) {
-        InetAddress address;        	// Endereco IP do socket
+        InetAddress address;        	// Endereço IP do socket
         DatagramPacket requestPacket;   // Pacote sendo enviado
         try{
             if(str == null) return false; // Mensagem vazia eh descartada
@@ -40,8 +40,10 @@ public class UnicastProtocol implements UnicastServiceInterface, Runnable{
 
             byte[] buffer = pdu.getBytes(); // Buffer para o PDU
 
-            if(buffer.length >1024){ // Limite imposto de 1024 bytes
-                System.err.println("Tamanho da mensagem excedida!");
+            if(buffer.length >1004){ // Limite imposto de 1024 bytes - cabeçalho UDP (20 bytes)
+                //System.err.println("Tamanho da mensagem excedida!");
+                short errorId = -1;
+                usui.UPDataInd(errorId, "Tamanho da mensagem excedida!");
                 return false;
             }
             String[] end = idEnd.get(idTarget).split(":"); // Busca o endereço (ip:porta) do nó destino a partir do id usando o hashmap 
