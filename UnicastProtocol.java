@@ -40,7 +40,7 @@ public class UnicastProtocol implements UnicastServiceInterface, Runnable{
 
             byte[] buffer = pdu.getBytes(); // Buffer para o PDU
 
-            if(buffer.length >1004){ // Limite imposto de 1024 bytes - cabeçalho UDP (20 bytes)
+            if(buffer.length >1024){ // Limite imposto de 1024 bytes
                 //System.err.println("Tamanho da mensagem excedida!");
                 short errorId = -1;
                 usui.UPDataInd(errorId, "Tamanho da mensagem excedida!");
