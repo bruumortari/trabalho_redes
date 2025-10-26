@@ -61,7 +61,7 @@ public class Main{
         }
         // Grupo de threads
         ThreadGroup uniGroup = new ThreadGroup("Unicasts");
-        ThreadGroup rpiGroup = new ThreadGroup("Routings");
+        ThreadGroup nwGroup = new ThreadGroup("NodeWindow");
 
         // Percorre todos os nós
         for(short id : idEnd.keySet()){ 
@@ -82,13 +82,14 @@ public class Main{
 
             // Cria as threads e coloca nos grupos
             Thread upThread = new Thread(uniGroup, up);
-            Thread rpiThread = new Thread(rpiGroup, nw);
+            Thread nwThread = new Thread(nwGroup, nw);
 
             // Inicializa as threads
             upThread.start();
-            rpiThread.start();
+            nwThread.start();
         }
 
     }
     
 }
+
