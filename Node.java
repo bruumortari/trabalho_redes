@@ -46,19 +46,17 @@ public class Node {
     public synchronized void updateNeighborCost(short neighborId, int cost){
         int[] vectorDistance;
         if(cost == -1){
-            neighborsCost.remove(neighborId);
             vectorDistance = new int[numberNodes];
             Arrays.fill(vectorDistance, -1);
         }else{
-            neighborsCost.put(neighborId, cost);
             vectorDistance = neighborsDistanceVectors.get(neighborId);
         }
-
+        neighborsCost.put(neighborId, cost);
         updateDistanceVector(neighborId, vectorDistance);
     }
     //Retorna os ids dos Nodes vizinhos
-    public synchronized Set<Short> getNeighborIds(){
-        return neighborsCost.keySet();
+    public synchronized TreeMap<Short, Integer>  getNeighbors(){
+        return neighborsCost;
     }
     public synchronized int getCost(short nodeId){
         return this.neighborsCost.get(nodeId);

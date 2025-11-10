@@ -1,5 +1,6 @@
 import java.util.HashMap;
 import java.util.Set;
+import java.util.TreeMap;
 
 public class RoutingInformationNode extends AbstractRIP implements WindowNodeUserInterface, UnicastServiceUserInterface, Runnable{
     private UnicastServiceInterface usi;
@@ -44,8 +45,9 @@ public class RoutingInformationNode extends AbstractRIP implements WindowNodeUse
         }
         //Monta mensagem
         String msg = "RIPIND" + " " + idNode + " " + distanceVectorString;
-        Set<Short> neighbors = nd.getNeighborIds(); //Solicita os Ids dos vizinhos
-        for(short neighbor: neighbors){
+        TreeMap<Short, Integer> neighbors = nd.getNeighbors(); //Solicita os Ids dos vizinhos
+        for(short neighbor: neighbors.keySet()){
+            if(neighbors.get(neighbor) == -1) continue;
             // Propaga através do Unicast o vetor para os vizinhos
             usi.UPDataReq(neighbor, msg);
         }
