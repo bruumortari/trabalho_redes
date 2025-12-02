@@ -54,6 +54,9 @@ public class NodeWindow implements Runnable, WindowNodeInterface{
         frame.setVisible(true);
         frame.setMinimumSize(new Dimension(400,500));
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+                // Posicionamento das janelas
+        int offset = 40; // Muda a posição para cada janela
+        frame.setLocation(100 + (idNode * offset), 100 + (idNode * offset));
     }
     /**
      * Adiciona um novo vetor de distância à tabela exibida na janela.
@@ -92,3 +95,4 @@ public class NodeWindow implements Runnable, WindowNodeInterface{
     }
 
 }
+
