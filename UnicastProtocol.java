@@ -1,7 +1,16 @@
 import java.io.*;
 import java.net.*;
 import java.util.HashMap;
-
+/**
+ * Implementação do protocolo de transferência unicast não
+ * confiável (Unicast) utilizando sockets UDP.
+ * <p>
+ * Esta classe é responsável por abstrair a comunicação de rede. Ela converte identificadores
+ * lógicos de nós (IDs) em endereços físicos (IP:Porta) e vice-versa.
+ * Além disso, gerencia o envio e recebimento de datagramas e notifica a camada superior
+ * {@link UnicastServiceUserInterface} quando novos dados chegam.
+ * </p>
+ */
 public class UnicastProtocol implements UnicastServiceInterface, Runnable{
     private final short ucsap_id; //guarda o proprio ip
     private int port_number; //guarda a porta
@@ -10,6 +19,17 @@ public class UnicastProtocol implements UnicastServiceInterface, Runnable{
     private UnicastServiceUserInterface usui; //classe "cliente" do UP
     private DatagramSocket datagram; //datagrama para receber/enviar as PDUs
 
+    /**
+     * Construtor do protocolo Unicast.
+     * <p>
+     * Inicializa os identificadores e abre o socket UDP na porta especificada.
+     * </p>
+     *
+     * @param id O ID lógico deste nó.
+     * @param port A porta UDP local para escuta.
+     * @param idEnd O mapa de tradução ID -> Endereço.
+     * @param ipID O mapa de tradução Endereço -> ID.
+     */
     public UnicastProtocol(short id, int port, HashMap<Short,String> idEnd, HashMap<String,Short> ipID){
         // Construtor
         ucsap_id = id;
@@ -24,11 +44,29 @@ public class UnicastProtocol implements UnicastServiceInterface, Runnable{
         }
         
     }
+    /**
+     * Define a camada superior que utilizará este serviço.
+     *
+     * @param usui A instância que implementa a interface de usuário do serviço Unicast (RIP).
+     */
     public void SetUser(UnicastServiceUserInterface usui){
         this.usui = usui; // Seta o cliente que implementa a interface de usuário
     }
-    
 
+    /**
+     * Solicita o envio de dados para outro nó (Request).
+     * <p>
+     * O método encapsula a mensagem no formato:
+     * {@code "UPDREQPDU <tamanho> <mensagem>"}.
+     * Em seguida, resolve o endereço IP/Porta do destino baseando-se no ID fornecido
+     * e envia via UDP.
+     * </p>
+     *
+     * @param idTarget O ID do nó de destino.
+     * @param str A mensagem (string) a ser enviada.
+     * @return {@code true} se o envio foi iniciado com sucesso, {@code false} se houve erro de I/O,
+     * se a mensagem for nula ou se exceder o tamanho máximo.
+     */
     @Override
     public boolean UPDataReq(short idTarget, String str) {
         InetAddress address;        	// Endereço IP do socket
@@ -57,7 +95,14 @@ public class UnicastProtocol implements UnicastServiceInterface, Runnable{
         }
         
     }
-
+    /**
+     * Função chamada ao inicializar a Thread. Fica em looping esperando receber mensagens. Ao receber:
+     * <ol>
+     * <li>Identifica quem enviou através do IP/Porta de origem.</li>
+     * <li>Reconstroi a mensagem a partir do PDU recebido.</li>
+     * <li>Notifica a camada superior através de {@code usui.UPDataInd}.</li>
+     * </ol>
+     */
     @Override
     public void run() {
         DatagramPacket requestPacket;   // Pacote enviado pelo cliente
@@ -97,7 +142,17 @@ public class UnicastProtocol implements UnicastServiceInterface, Runnable{
         }   
         
     }
-
+    /**
+     * Método para reconstruir a mensagem original a partir do PDU.
+     * <p>
+     * Como o protocolo utiliza espaços para separar o cabeçalho do corpo,
+     * e o corpo da mensagem também pode conter espaços, este método
+     * concatena as partes corretamente baseando-se no tamanho informado no cabeçalho.
+     * </p>
+     *
+     * @param message A string crua recebida no pacote (incluindo cabeçalhos).
+     * @return A mensagem de texto original enviada pelo usuário.
+     */
     private static String getString(String message) {
         String[] parts = message.split(" "); // Split da mensagem usando espaço como separador
         int i = Integer.parseInt(parts[1]) - 1 - parts[2].length(); // Tamanho da mensagem

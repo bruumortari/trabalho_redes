@@ -2,15 +2,31 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
-
+/**
+ * Classe principal responsável pela inicialização e orquestração do sistema de roteamento.
+ * <p>
+ * Esta classe realiza a leitura dos arquivos de configuração, inicializa as estruturas de dados
+ * globais e instancia as threads necessárias para o funcionamento do protocolo  de troca de informações de
+ * roteamento (RIP) e do protocolo de transferência unicast não
+ * confiável (Unicast).
+ * </p>
+ *
+ * @author Bruna Bertolo Mortari e Sabrina Sousa Carvalho
+ */
 public class Main{
     private static HashMap<Short,String> idEnd;
     private static HashMap<String,Short> ipID;
     private static final Set<Short> nodesList = new HashSet<>();
     private static HashMap<String, Integer> linksCost;
     private static int numberNodes = 0;
-    private static final TreeSet<Short> nodesGraph = new TreeSet<>();
-
+    /**
+     * Leitura do arquivo de configuração básico ('config.txt').
+     * <p>
+     * O arquivo deve conter linhas no formato: {@code ID IP PORTA}.
+     * Este método preenche os mapas de endereçamento ({@code idEnd} e {@code ipID}).
+     * Se houver erro de leitura ou formatação, o programa é encerrado.
+     * </p>
+     */
     private static void SetConfig(){
         // Função para ler o arquivo de configuração
         // Preenche os hashmaps com as informações do arquivo (id endereçoIP porta)
@@ -52,6 +68,14 @@ public class Main{
             System.exit(-1);
         }
     }
+    /**
+     * Lê o arquivo de configuração de roteamento ('routingConfig.txt').
+     * <p>
+     * O arquivo deve conter linhas no formato: {@code Nó1 Nó2 Custo}.
+     * Este método preenche o mapa de custos dos enlaces ({@code linksCost}).
+     * Valida se os custos são positivos e se os nós existem.
+     * </p>
+     */
     private static void SetRouting(){
         // Função para ler o arquivo de configuração de roteamento
         // Preenche os hashmaps com as informações do arquivo (nóX nó custo)
@@ -90,6 +114,23 @@ public class Main{
             System.exit(-1);
         }
     }
+    /**
+     * Função inicial da aplicação.
+     * <p>
+     * Executa a sequência de inicialização:
+     * <ol>
+     * <li>Carrega configurações e roteamento.</li>
+     * <li>Valida a integridade dos dados carregados.</li>
+     * <li>Itera sobre os nós configurados localmente (127.0.0.1).</li>
+     * <li>Instancia e conecta as camadas (Unicast, RIP, Aplicação/GUI).</li>
+     * <li>Inicia as threads para cada componente.</li>
+     * </ol>
+     * O nó com ID 0 é tratado como Gerente (com camada de Aplicação), enquanto os demais
+     * possuem interface gráfica (NodeWindow).
+     *
+     * @param args Argumentos de linha de comando (não utilizados nesta versão).
+     */
+
     public static void main(String[] args){
         // Chama função para ler o arquivo
         SetConfig();
@@ -138,7 +179,6 @@ public class Main{
                 // Cria a GUI do nó
                 NodeWindow nw = new NodeWindow(id, nodesGraph);
                 // Faz a ligação entre as camadas (RIP e GUI)
-                nw.SetUser((WindowNodeUserInterface) rip);
                 ((RoutingInformationNode) rip).SetGUI(nw);
                 // Inicializa a thread de GUI
                 Thread nwThread = new Thread(windGroup, nw);

@@ -1,8 +1,17 @@
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Set;
-import java.util.Timer;
-
+/**
+ * Implementação do Gerente do Protocolo de Roteamento.
+ * Esta classe atua como uma entidade controladora que pode consultar e modificar o estado da rede.
+ * Diferente dos nós comuns, o Gerente não participa do roteamento de dados, mas possui privilégios para:
+ * <ul>
+ * <li>Consultar a Tabela de Distância de qualquer nó.</li>
+ * <li>Consultar o custo de um enlace específico.</li>
+ * <li>Alterar o custo de um enlace (afetando o cálculo de rotas dos nós).</li>
+ * </ul>
+ * A classe implementa uma <b>Máquina de Estados</b> para gerir as requisições, garantindo que
+ * uma operação seja concluída (ou expire por timeout) antes de iniciar outra.
+ */
 public class RoutingInformationManager extends AbstractRIP implements Runnable, RoutingProtocolManagementInterface,
         UnicastServiceUserInterface {
     private UnicastServiceInterface usi;
@@ -17,7 +26,14 @@ public class RoutingInformationManager extends AbstractRIP implements Runnable, 
     private int numberNodes;
     private HashMap<String, Integer> linksCost;
     private Set<Short> nodesGraph;
-
+    /**
+     * Construtor do Gerente.
+     *
+     * @param id ID do nó gerente (geralmente 0).
+     * @param numbeNodes Número total de nós na rede.
+     * @param linksCost Mapa da topologia da rede.
+     * @param nodesGraph Conjunto de nós ativos.
+     */
     public RoutingInformationManager(short id, int numbeNodes, HashMap<String, Integer> linksCost, Set<Short> nodesGraph) {
         super(id);
         this.numberNodes = numbeNodes;
@@ -25,17 +41,30 @@ public class RoutingInformationManager extends AbstractRIP implements Runnable, 
         this.nodesGraph = nodesGraph;
         currentState = State.Idle;
     }
-    //Ligação com a camada de aplicação
+    /**
+     * Define a ligação com a camada de aplicação.
+     * @param rpmsui Instância da interface de usuário.
+     */
     public void  SetRPMUser(RoutingProtocolManagementServiceUserInterface rpmsui){
         this.rpmsui = rpmsui;
     }
-    //Ligação com a camada de unicast
+    /**
+     * Define a ligação com a camada de unicast.
+     * @param usi Instância do protocolo de transporte.
+     */
     public void SetUSI(UnicastServiceInterface usi){
         this.usi = usi;
     }
-
+    /**
+     * Primitiva utilizada pela aplicação para requisitar a tabela de distância de um nó.
+     * <p>
+     * Envia uma mensagem {@code RIPRQT} para o nó alvo.
+     * </p>
+     *
+     * @param id ID do nó alvo.
+     * @return {@code true} se a solicitação foi enviada, {@code false} se o gerente estiver ocupado ou o ID for inválido.
+     */
     @Override
-    //Primitiva utilizada pela aplicação para requisitar a tabela de distância de um nó.
     public boolean getDistanceTable(short id) {
         if(currentState != State.Idle) return false; // Só funciona se ocioso
 
@@ -54,9 +83,17 @@ public class RoutingInformationManager extends AbstractRIP implements Runnable, 
         }
         return false;
     }
-
+    /**
+     * Primitiva utilizada pela aplicação para requisitar o custo do enlace conectando dois nós (A/B).
+     * <p>
+     * Envia uma mensagem {@code RIPGET} para o nó de origem (node1).
+     * </p>
+     *
+     * @param node1 ID do primeiro nó.
+     * @param node2 ID do segundo nó.
+     * @return {@code true} se enviado com sucesso, {@code false} se ocupado ou link inexistente.
+     */
     @Override
-    //Primitiva utilizada pela aplicação para requisitar o custo do enlace conectando dois nós (A/B).
     public boolean getLinkCost(short node1, short node2) {
         if(currentState != State.Idle) return false; // Só funciona se ocioso
 
@@ -79,8 +116,20 @@ public class RoutingInformationManager extends AbstractRIP implements Runnable, 
         return true;
     }
 
+    /**
+     * Primitiva utilizada pela aplicação para redefinir o custo do enlace conectando dois nós (A/B).
+     * Esta operação é realizada em duas etapas para garantir consistência:
+     * <ol>
+     * <li>Envia {@code RIPSET} para o {@code node1} e aguarda confirmação.</li>
+     * <li>Após receber a confirmação, envia {@code RIPSET} para o {@code node2}.</li>
+     * </ol>
+     *
+     * @param node1 ID do primeiro nó.
+     * @param node2 ID do segundo nó.
+     * @param cost Novo custo do enlace.
+     * @return {@code true} se o processo iniciou, {@code false} caso contrário.
+     */
     @Override
-    //Primitiva utilizada pela aplicação para redefinir o custo do enlace conectando dois nós (A/B).
     public boolean setLinkCost(short node1, short node2, int cost) {
         if(currentState != State.Idle) return false; // Só funciona se ocioso
 
@@ -104,7 +153,18 @@ public class RoutingInformationManager extends AbstractRIP implements Runnable, 
         return true;
 
     }
-
+    /**
+     * Processa as respostas recebidas da rede.
+     * Trata as mensagens:
+     * <ul>
+     * <li><b>RIPNTF:</b> Notificação de custo. Pode ser apenas uma resposta de consulta ou a confirmação
+     * de uma etapa de alteração de custo (avançando a máquina de estados).</li>
+     * <li><b>RIPRSP:</b> Resposta contendo a tabela de distância completa de um nó.</li>
+     * </ul>
+     *
+     * @param originId ID de quem enviou a resposta.
+     * @param message Conteúdo da mensagem.
+     */
     @Override
     public void UPDataInd(short originId, String message) { //Recebeu mensagem
         String[] parts = message.split(" ");
@@ -154,7 +214,14 @@ public class RoutingInformationManager extends AbstractRIP implements Runnable, 
                 break;
         }
     }
-
+    /**
+     * Loop principal de controle de tempo.
+     * <p>
+     * Verifica periodicamente (a cada 1 segundo) se alguma requisição pendente excedeu
+     * o tempo limite de 5 segundos. Se excedeu, realiza a retransmissão da última mensagem
+     * baseada no estado atual.
+     * </p>
+     */
     @Override
     public void run() {
         String msg;
